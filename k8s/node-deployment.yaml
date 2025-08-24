@@ -1,0 +1,54 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: node-svc
+  namespace: microdemo
+spec:
+  selector:
+    app: node-svc
+  ports:
+    - name: http
+      port: 80
+      targetPort: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: node-svc
+  namespace: microdemo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: node-svc
+  template:
+    metadata:
+      labels:
+        app: node-svc
+    spec:
+      containers:
+        - name: node
+          image: node-svc:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+          env:
+            - name: PORT
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: NODE_PORT
+            - name: MONGO_URI
+              value: mongodb://mongo.microdemo.svc.cluster.local:27017/appdb
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 3000
+            initialDelaySeconds: 10
+            periodSeconds: 10

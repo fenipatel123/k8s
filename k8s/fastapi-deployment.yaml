@@ -1,0 +1,66 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: fastapi-svc
+  namespace: microdemo
+spec:
+  selector:
+    app: fastapi-svc
+  ports:
+    - name: http
+      port: 80
+      targetPort: 5000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fastapi-svc
+  namespace: microdemo
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: fastapi-svc
+  template:
+    metadata:
+      labels:
+        app: fastapi-svc
+    spec:
+      containers:
+        - name: fastapi
+          image: fastapi-svc:latest
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 5000
+          env:
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+            - name: DB_NAME
+              valueFrom:
+                configMapKeyRef:
+                  name: app-config
+                  key: DB_NAME
+            - name: DB_USER
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_USER
+            - name: DB_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgres-secret
+                  key: POSTGRES_PASSWORD
+          readinessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: 5000
+            initialDelaySeconds: 10
+            periodSeconds: 10

@@ -1,0 +1,37 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: microdemo-ingress
+  namespace: microdemo
+  annotations:
+    # keep it simple: one set of annotations per host
+    nginx.ingress.kubernetes.io/ssl-redirect: "false"
+    nginx.ingress.kubernetes.io/use-regex: "true"
+    # strip only the regex's $2 (second capture group) from all paths in THIS Ingress
+    nginx.ingress.kubernetes.io/rewrite-target: /$2
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: 127.0.0.1.nip.io
+    http:
+      paths:
+      # FRONTEND: match "/" and anything after it into capture group 2 (which is empty for "/")
+
+      # APIs: your existing regex routes
+      - path: /api/py(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: fastapi-svc
+            port:
+              number: 80
+      - path: /api/node(/|$)(.*)
+        pathType: ImplementationSpecific
+        backend:
+          service:
+            name: node-svc
+            port:
+              number: 80
+      
+
+ 
