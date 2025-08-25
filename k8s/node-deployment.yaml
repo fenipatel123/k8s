@@ -40,6 +40,11 @@ spec:
                   key: NODE_PORT
             - name: MONGO_URI
               value: mongodb://mongo.microdemo.svc.cluster.local:27017/appdb
+          resources:
+            requests:
+              cpu: "100m"
+            limits:
+              cpu: "500m"
           readinessProbe:
             httpGet:
               path: /health
@@ -52,3 +57,36 @@ spec:
               port: 3000
             initialDelaySeconds: 10
             periodSeconds: 10
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: node-svc-hpa
+  namespace: microdemo
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: node-svc
+  minReplicas: 1
+  maxReplicas: 5
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: 50   
+  behavior:
+    scaleUp:
+      stabilizationWindowSeconds: 60
+      policies:
+        - type: Percent
+          value: 100              
+          periodSeconds: 15
+    scaleDown:
+      stabilizationWindowSeconds: 0  
+      policies:
+        - type: Percent
+          value: 100               
+          periodSeconds: 15
